@@ -205,7 +205,7 @@ def efficient_iou(boxes1, boxes2):
     return eiou
 
 
-def focal_efficient_iou_loss(boxes1, boxes2, gamma=2):
+def focal_efficient_iou_loss(boxes1, boxes2, gamma=0.5):
     '''
         :param boxes1: shape= N 4
         :param boxes2: shape= M 4
@@ -258,6 +258,7 @@ if __name__ == '__main__':
     a = torch.tensor([[0, 0, 2, 2]])
     b = torch.tensor([[0, 0, 3, 3],
                       [1, 1, 5, 5]])
-    res = complete_iou(a, b)
+    res = efficient_iou(a, b)
     print(a)
     print(res)
+    print(15/36-2/9)
