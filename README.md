@@ -18,6 +18,24 @@ if __name__ == '__main__':
                       [1, 1, 5, 5]])
     res = efficient_iou(a, b)
     # res =generalized_box_iou(a,b)
+    print(res)
 ```
+
+ ###References
+ #### GIOU 2019
+    -Paper: Generalized Intersection Over Union: A Metric and a Loss for Bounding Box Regression
+    -https://arxiv.org/pdf/1902.09630
+
+#### DIOU & CIOU 2019
+    -Paper: Distance-IoU Loss: Faster and Better Learning for Bounding Box Regression 
+    -https://arxiv.org/abs/1911.08287
+
+#### EIOU 2021
+    -Paper: Focal and Efficient IOU Loss for Accurate Bounding Box Regression。
+    -https://arxiv.org/abs/2101.08158
+
+#### SIOU 2022
+    -Paper: SIoU Loss: More Powerful Learning for Bounding Box Regression
+    -https://arxiv.org/abs/2205.12740
 
 
