@@ -1,8 +1,9 @@
 import torch
 import math
-from box_convert import box_area
-# from torchvision.ops.boxes import box_area
+from box_convert import box_area, box_xyxy_to_cxcywh
 
+
+# from torchvision.ops.boxes import box_area
 
 
 def box_iou(boxes1, boxes2):
@@ -157,7 +158,106 @@ def complete_iou(boxes1, boxes2):
     return ciou
 
 
+def efficient_iou(boxes1, boxes2):
+    '''
+        :param boxes1: shape= N 4
+        :param boxes2: shape= M 4
+        :return: eiou shape= N M
+        '''
+
+    # 保证数据的正确性做的事先判断
+    assert (boxes1[:, 2:] >= boxes1[:, :2]).all()
+    assert (boxes2[:, 2:] >= boxes2[:, :2]).all()
+    iou, union = box_iou(boxes1, boxes2)
+
+    # 大框的左上角
+    lt = torch.min(boxes1[:, None, :2], boxes2[:, :2])
+    # 大框的右下角
+    rb = torch.max(boxes1[:, None, 2:], boxes2[:, 2:])
+
+    # 相减得大于0
+    wh = (rb - lt).clamp(min=0)  # [N,M,2]
+
+    # 包围矩形的对角线的平方
+    diag_line = torch.pow(wh[:, :, 0], 2) + torch.pow(wh[:, :, 1], 2)  # N,M
+
+    # 中心点位置距离的平方
+    c_boxes1 = box_xyxy_to_cxcywh(boxes1)
+    c_boxes2 = box_xyxy_to_cxcywh(boxes2)
+    c_wh = torch.abs(c_boxes1[:, None, :2] - c_boxes2[:, :2])  # N,M,2
+    center_dis = torch.pow(c_wh[:, :, 0], 2) + torch.pow(c_wh[:, :, 1], 2)  # N,M
+    loss_dis = torch.true_divide(center_dis, diag_line)
+
+    # 宽的距离之差的平方
+    dis_width = torch.pow((c_boxes1[:, None, 2] - c_boxes2[:, 2]), 2)  # N,M
+    # 最小包围框的width的平方
+    enclose_width = torch.pow(wh[:, :, 0], 2)  # N,M
+    loss_asp1 = torch.true_divide(dis_width, enclose_width)
+
+    # 高的距离之差的平方
+    dis_height = torch.pow((c_boxes1[:, None, -1] - c_boxes2[:, -1]), 2)  # N,M
+    # 最小包围框的height的平方
+    enclose_height = torch.pow(wh[:, :, 1], 2)  # N,M
+    loss_asp2 = torch.true_divide(dis_height, enclose_height)
+
+    eiou = iou - loss_dis - loss_asp1 - loss_asp2
+
+    return eiou
+
+
+def focal_efficient_iou_loss(boxes1, boxes2, gamma=2):
+    '''
+        :param boxes1: shape= N 4
+        :param boxes2: shape= M 4
+        :return: eiou shape= N M
+        '''
+
+    # 保证数据的正确性做的事先判断
+    assert (boxes1[:, 2:] >= boxes1[:, :2]).all()
+    assert (boxes2[:, 2:] >= boxes2[:, :2]).all()
+    iou, union = box_iou(boxes1, boxes2)
+
+    # 大框的左上角
+    lt = torch.min(boxes1[:, None, :2], boxes2[:, :2])
+    # 大框的右下角
+    rb = torch.max(boxes1[:, None, 2:], boxes2[:, 2:])
+
+    # 相减得大于0
+    wh = (rb - lt).clamp(min=0)  # [N,M,2]
+
+    # 包围矩形的对角线的平方
+    diag_line = torch.pow(wh[:, :, 0], 2) + torch.pow(wh[:, :, 1], 2)  # N,M
+
+    # 中心点位置距离的平方
+    c_boxes1 = box_xyxy_to_cxcywh(boxes1)
+    c_boxes2 = box_xyxy_to_cxcywh(boxes2)
+    c_wh = torch.abs(c_boxes1[:, None, :2] - c_boxes2[:, :2])  # N,M,2
+    center_dis = torch.pow(c_wh[:, :, 0], 2) + torch.pow(c_wh[:, :, 1], 2)  # N,M
+    loss_dis = torch.true_divide(center_dis, diag_line)
+
+    # 宽的距离之差的平方
+    dis_width = torch.pow((c_boxes1[:, None, 2] - c_boxes2[:, 2]), 2)  # N,M
+    # 最小包围框的width的平方
+    enclose_width = torch.pow(wh[:, :, 0], 2)  # N,M
+    loss_asp1 = torch.true_divide(dis_width, enclose_width)
+
+    # 高的距离之差的平方
+    dis_height = torch.pow((c_boxes1[:, None, -1] - c_boxes2[:, -1]), 2)  # N,M
+    # 最小包围框的height的平方
+    enclose_height = torch.pow(wh[:, :, 1], 2)  # N,M
+    loss_asp2 = torch.true_divide(dis_height, enclose_height)
+
+    eiou = iou - loss_dis - loss_asp1 - loss_asp2  # N,M
+
+    focal_eiou_loss = torch.pow(iou, gamma) * eiou  # N,M
+
+    return focal_eiou_loss
+
+
 if __name__ == '__main__':
-    a = torch.rand(1, 4)
+    a = torch.tensor([[0, 0, 2, 2]])
+    b = torch.tensor([[0, 0, 3, 3],
+                      [1, 1, 5, 5]])
+    res = complete_iou(a, b)
     print(a)
-    print(a[..., 0])
+    print(res)
