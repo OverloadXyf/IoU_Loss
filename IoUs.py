@@ -259,6 +259,6 @@ if __name__ == '__main__':
     b = torch.tensor([[0, 0, 3, 3],
                       [1, 1, 5, 5]])
     res = efficient_iou(a, b)
-    print(a)
     print(res)
-    print(15/36-2/9)
+    # res =generalized_box_iou(a,b)
+
