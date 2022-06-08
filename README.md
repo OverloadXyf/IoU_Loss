@@ -1,4 +1,4 @@
- ##IoU Loss 说明
+ ##IoU Loss 说明 非官方实现 Not Official !!!
  ### IOU GIoU DIOU CIOU EIOU 
  #### *IOU LOSS=1-IoU*
  #### *GIOU LOSS=1-GIoU*
