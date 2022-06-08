@@ -4,7 +4,7 @@
  #### *GIOU LOSS=1-GIoU*
  #### *DIOU LOSS=1-DIoU*
  #### *CIOU LOSS=1-CIoU*
- $ IOU^{\gamma } \times EIOU $
+ #### *Focal EIoU Loss = $ IOU^{\gamma } \times EIOU $*
 
  #### 可以使用以下简单代码快验证定义的iou是否计算正确
  #### 相对来说 EIOU比较小
@@ -21,7 +21,8 @@ if __name__ == '__main__':
     print(res)
 ```
 
- ###References
+ ### References
+
  #### GIOU 2019
     -Paper: Generalized Intersection Over Union: A Metric and a Loss for Bounding Box Regression
     -https://arxiv.org/pdf/1902.09630
