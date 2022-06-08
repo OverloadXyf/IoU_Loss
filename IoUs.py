@@ -32,6 +32,8 @@ def box_iou(boxes1, boxes2):
     union = area1[:, None] + area2 - inter  # N M 计算出NM个框的union 所以要用到None
 
     iou = inter / union
+    print('inter=', inter)
+    print('union=', union)
 
     return iou, union
 
@@ -249,16 +251,15 @@ def focal_efficient_iou_loss(boxes1, boxes2, gamma=0.5):
 
     eiou = iou - loss_dis - loss_asp1 - loss_asp2  # N,M
 
-    focal_eiou_loss = torch.pow(iou, gamma) * eiou  # N,M
+    focal_eiou_loss = torch.pow(iou, gamma) * (1-eiou)  # N,M
 
     return focal_eiou_loss
 
 
 if __name__ == '__main__':
     a = torch.tensor([[0, 0, 2, 2]])
-    b = torch.tensor([[0, 0, 3, 3],
+    b = torch.tensor([[3, 3, 4, 4],
                       [1, 1, 5, 5]])
     res = efficient_iou(a, b)
     print(res)
     # res =generalized_box_iou(a,b)
-
