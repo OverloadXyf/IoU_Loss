@@ -261,7 +261,7 @@ def SCYLLA_IoU(boxes1, boxes2):
     SIoU:https://arxiv.org/abs/2205.12740
     :param boxes1: boxes1: shape= N 4
     :param boxes2: boxes2: shape= M 4
-    :return:
+    :return: SIoU: shape= N M
     '''
 
     # 保证数据的正确性做的事先判断
