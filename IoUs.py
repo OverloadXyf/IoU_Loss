@@ -251,15 +251,83 @@ def focal_efficient_iou_loss(boxes1, boxes2, gamma=0.5):
 
     eiou = iou - loss_dis - loss_asp1 - loss_asp2  # N,M
 
-    focal_eiou_loss = torch.pow(iou, gamma) * (1-eiou)  # N,M
+    focal_eiou_loss = torch.pow(iou, gamma) * (1 - eiou)  # N,M
 
     return focal_eiou_loss
 
 
+def SCYLLA_IoU(boxes1, boxes2):
+    '''
+    SIoU:https://arxiv.org/abs/2205.12740
+    :param boxes1: boxes1: shape= N 4
+    :param boxes2: boxes2: shape= M 4
+    :return:
+    '''
+
+    # 保证数据的正确性做的事先判断
+    assert (boxes1[:, 2:] >= boxes1[:, :2]).all()
+    assert (boxes2[:, 2:] >= boxes2[:, :2]).all()
+    iou, union = box_iou(boxes1, boxes2)
+
+    w1 = (boxes1[:, 2] - boxes1[:, 0]).clamp(min=0)  # [M]
+    h1 = (boxes1[:, 3] - boxes1[:, 1]).clamp(min=0)  # [M]
+    w2 = (boxes2[:, 2] - boxes2[:, 0]).clamp(min=0)  # [N]
+    h2 = (boxes2[:, 3] - boxes2[:, 1]).clamp(min=0)  # [N]
+
+    # 大框的左上角
+    lt = torch.min(boxes1[:, None, :2], boxes2[:, :2])  # [M,N,2]
+    # 大框的右下角
+    rb = torch.max(boxes1[:, None, 2:], boxes2[:, 2:])  # [M,N,2]
+
+    # 大框的宽度
+    cw = rb[:, :, 0] - lt[:, :, 0]  # [M,N]
+    # 大框的高度
+    ch = rb[:, :, 1] - lt[:, :, 1]  # [M,N]
+
+    # SIOU中对两个框的宽度和高度的判断公司还得看论文
+    s_cw = (boxes2[:, 0] + boxes2[:, 2] - boxes1[:, None, 0] - boxes1[:, None, 2]) * 0.5  # [M,N]
+    s_ch = (boxes2[:, 1] + boxes2[:, 3] - boxes1[:, None, 1] - boxes1[:, None, 3]) * 0.5  # [M,N]
+
+    # 将s_ch和s_cw作为三角形的直角边 sigma作为斜边
+    sigma = torch.pow(s_cw ** 2 + s_ch ** 2, 0.5)  # [M,N]
+
+    # 求三角形中两个锐角的sin
+    sin_alpha_1 = torch.abs(s_cw) / sigma  # [M,N]
+    sin_alpha_2 = torch.abs(s_ch) / sigma  # [M,N]
+
+    # 定义一个45度角的sin阈值
+    threshold = pow(2, 0.5) / 2
+    # 需要用的角是小于45度的 要选出alpha1 alpha2小于45度的角
+    sin_alpha = torch.where(sin_alpha_1 > threshold, sin_alpha_2, sin_alpha_1)  # [M,N]
+
+    # 角度的代价值 因为是cos函数 值域为[0,1] 45度角的代价最大为1 0度的角代价最小为0
+    angle_cost = torch.cos(torch.arcsin(sin_alpha) * 2 - math.pi / 2)  # [M.N]
+
+    # 之后考虑距离的代价 先求得宽高差异 这里与最小包围框比较
+    rho_x = (s_cw / cw) ** 2  # [M.N]
+    rho_y = (s_ch / ch) ** 2  # [M.N]
+    # 这里的gamma 的值域在[-2,-1] 与角度相关 45度为-1 0度角为-2
+    gamma = angle_cost - 2
+    # 这里的distance cost 这个与角度也有关系
+    distance_cost = 2 - torch.exp(gamma * rho_x) - torch.exp(gamma * rho_y)  # [M.N]
+
+    # 接下来考虑的是shape cost
+    omiga_w = torch.abs(w1[:,None] - w2) / torch.max(w1, w2) # [M,N]
+    omiga_h = torch.abs(h1[:,None] - h2) / torch.max(h1, h2) # [M,N]
+    shape_cost = torch.pow(1 - torch.exp(-1 * omiga_w), 4) + torch.pow(1 - torch.exp(-1 * omiga_h), 4) # [M,N]
+
+    # iou
+    siou=iou-0.5*(distance_cost+shape_cost)
+
+    return siou
+
+
+
+
 if __name__ == '__main__':
     a = torch.tensor([[0, 0, 2, 2]])
-    b = torch.tensor([[3, 3, 4, 4],
-                      [1, 1, 5, 5]])
-    res = efficient_iou(a, b)
-    print(res)
+    b = torch.tensor([[1, 1, 3, 3],
+                      [1, 0, 3, 2]])
+    res=SCYLLA_IoU(a, b)
+    print(1-res)
     # res =generalized_box_iou(a,b)
