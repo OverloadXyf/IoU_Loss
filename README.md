@@ -4,7 +4,8 @@
  #### *GIOU LOSS=1-GIoU*
  #### *DIOU LOSS=1-DIoU*
  #### *CIOU LOSS=1-CIoU*
- #### Focal EIoU Loss = $ IOU^{\gamma } \times EIOU $
+ #### Focal EIoU Loss
+ 定义为：$ IOU^{\gamma } \times EIOU $
 
  #### 可以使用以下简单代码快验证定义的iou是否计算正确
  #### 相对来说 EIOU比较小
